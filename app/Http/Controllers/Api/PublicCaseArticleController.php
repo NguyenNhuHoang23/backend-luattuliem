@@ -12,7 +12,6 @@ class PublicCaseArticleController extends Controller
     public function index(): JsonResponse
     {
         $articles = CaseArticle::query()
-            ->orderByDesc('featured')
             ->orderByDesc('publication_order')
             ->orderByDesc('id')
             ->get();

@@ -22,12 +22,7 @@ class MemberChatController extends Controller
     {
         $actor = $this->actor($request);
 
-        $conversations = Conversation::query()
-            ->where('type', Conversation::TYPE_DIRECT)
-            ->whereHas('members', fn ($query) => $query->where('members.id', $actor->id))
-            ->with(['members', 'latestMessage'])
-            ->orderByDesc('updated_at')
-            ->get();
+        $conversations = Conversation::listedFor($actor, Conversation::TYPE_DIRECT);
 
         return ConversationResource::collection($conversations)
             ->additional(['success' => true])

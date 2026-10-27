@@ -14,16 +14,22 @@ class RecruitmentApplicationResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'name' => $this->full_name,
             'fullName' => $this->full_name,
             'phone' => $this->phone,
             'email' => $this->email,
             'role' => $this->role,
             'area' => $this->area,
+            'request' => $this->experience,
             'experience' => $this->experience,
             'cvFileName' => $this->cv_file_name,
             'hasCv' => filled($this->cv_path),
-            'status' => $this->status,
+            'status' => $this->reviewStatus(),
+            'reviewNote' => $this->review_note,
+            'reviewedAt' => $this->reviewed_at?->timezone('Asia/Ho_Chi_Minh')->format('d-m-Y H:i'),
             'createdAt' => $this->created_at?->timezone('Asia/Ho_Chi_Minh')->format('d-m-Y H:i'),
+            'memberId' => $this->member_id,
+            'username' => $this->member?->username,
         ];
     }
 }

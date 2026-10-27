@@ -119,6 +119,46 @@ class MemberChatTest extends TestCase
         $this->assertSame('Tin 2', $older->json('data.1.content'));
     }
 
+    public function test_unread_conversations_are_listed_first(): void
+    {
+        Event::fake([MemberChatMessageSent::class]);
+
+        $director = $this->makeMember(['username' => 'giamdoc-unread', 'role' => 'director']);
+        $ctv = $this->makeMember([
+            'username' => 'ctv-unread',
+            'email' => 'ctv-unread@example.com',
+        ]);
+        $other = $this->makeMember([
+            'username' => 'ctv-read',
+            'email' => 'ctv-read@example.com',
+        ]);
+
+        $read = Conversation::findOrCreateDirect($ctv, $other);
+        $read->messages()->create([
+            'member_id' => $other->id,
+            'content' => 'Tin đã đọc',
+        ]);
+        $read->forceFill(['updated_at' => now()])->save();
+        $read->markReadFor($ctv);
+
+        $unread = Conversation::findOrCreateDirect($director, $ctv);
+        $unread->messages()->create([
+            'member_id' => $director->id,
+            'content' => 'Tin chưa đọc',
+        ]);
+        $unread->forceFill(['updated_at' => now()->subHour()])->save();
+
+        $this->withToken($ctv->createMemberToken());
+
+        $this->getJson('/api/thanh-vien/tin-nhan')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.unread', true)
+            ->assertJsonPath('data.0.peer.id', $director->id)
+            ->assertJsonPath('data.1.unread', false)
+            ->assertJsonPath('data.1.peer.id', $other->id);
+    }
+
     public function test_outsider_cannot_read_or_send_chat(): void
     {
         Event::fake([MemberChatMessageSent::class]);

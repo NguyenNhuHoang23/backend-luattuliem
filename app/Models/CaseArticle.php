@@ -80,4 +80,62 @@ class CaseArticle extends Model
     {
         return (int) static::query()->max('publication_order') + 1;
     }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function payloadFrom(array $data, ?self $existing = null): array
+    {
+        $title = $data['title'];
+        $caseNumber = $data['case_number'];
+        $court = $data['source_court'] ?? $existing?->source_court;
+        $tag = $data['tag'] ?? $existing?->tag;
+        $overview = $data['overview'] ?? $existing?->overview;
+        $field = $data['field'] ?? $existing?->field;
+        $status = $data['status'] ?? $existing?->status ?? 'Đang áp dụng';
+
+        $attributes = [
+            'title' => $title,
+            'case_number' => $caseNumber,
+            'code' => $data['code'] ?? $existing?->code ?? $caseNumber,
+            'category' => $data['category'],
+            'tag' => $tag,
+            'description' => $data['description'],
+            'overview' => $overview,
+            'source_court' => $court,
+            'published_on' => $data['published_on'] ?? $existing?->published_on,
+            'featured' => $data['featured'] ?? $existing?->featured ?? false,
+            'publication_order' => $existing
+                ? ($data['publication_order'] ?? $existing->publication_order)
+                : static::nextOrder(),
+            'field' => $field,
+            'status' => $status,
+            'keywords' => $data['keywords'] ?? $existing?->keywords ?? [],
+            'legal_provisions' => $data['legal_provisions'] ?? $existing?->legal_provisions ?? [],
+            'case_body' => $data['case_body'] ?? $existing?->case_body ?? [],
+            'related_docs' => $data['related_docs'] ?? $existing?->related_docs ?? [],
+            'attributes' => [
+                'agency' => $court,
+                'field' => $field,
+                'status' => $status,
+            ],
+            'modal' => [
+                'title' => $title,
+                'topic' => $tag,
+                'court' => $court,
+                'result' => $overview,
+            ],
+        ];
+
+        if (! $existing || filled($data['slug'] ?? null)) {
+            $attributes['slug'] = static::uniqueSlug(
+                $caseNumber ?: $title,
+                $data['slug'] ?? null,
+                $existing?->id,
+            );
+        }
+
+        return $attributes;
+    }
 }

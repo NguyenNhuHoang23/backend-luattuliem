@@ -2,12 +2,13 @@
 
 use App\Http\Controllers\Api\AboutArticleController;
 use App\Http\Controllers\Api\AdminAuthController;
-use App\Http\Controllers\Api\CaseArticleController;
 use App\Http\Controllers\Api\CompanySettingController;
 use App\Http\Controllers\Api\ContactMessageController;
 use App\Http\Controllers\Api\HomePageController;
 use App\Http\Controllers\Api\HomePageImageController;
+use App\Http\Controllers\Api\MemberApplicationController;
 use App\Http\Controllers\Api\MemberAuthController;
+use App\Http\Controllers\Api\MemberCaseArticleController;
 use App\Http\Controllers\Api\MemberCaseController;
 use App\Http\Controllers\Api\MemberChatController;
 use App\Http\Controllers\Api\MemberController;
@@ -24,7 +25,6 @@ use App\Http\Controllers\Api\PublicRecruitmentApplicationController;
 use App\Http\Controllers\Api\PublicRecruitmentPageController;
 use App\Http\Controllers\Api\PublicRecruitmentPostController;
 use App\Http\Controllers\Api\PublicRecruitmentRoleController;
-use App\Http\Controllers\Api\RecruitmentApplicationController;
 use App\Http\Controllers\Api\RecruitmentPageController;
 use App\Http\Controllers\Api\RecruitmentPostController;
 use App\Http\Controllers\Api\RecruitmentRoleController;
@@ -54,6 +54,10 @@ Route::middleware('auth.member')->group(function () {
     Route::post('/thanh-vien/dang-xuat', [MemberAuthController::class, 'logout']);
     Route::get('/thanh-vien/doi-ngu', [MemberTeamController::class, 'index']);
     Route::get('/thanh-vien/doi-ngu/{member}', [MemberTeamController::class, 'show']);
+    Route::get('/thanh-vien/de-nghi', [MemberApplicationController::class, 'index']);
+    Route::get('/thanh-vien/de-nghi/{recruitmentApplication}/cv', [MemberApplicationController::class, 'cv']);
+    Route::post('/thanh-vien/de-nghi/{recruitmentApplication}/duyet', [MemberApplicationController::class, 'approve']);
+    Route::post('/thanh-vien/de-nghi/{recruitmentApplication}/tu-choi', [MemberApplicationController::class, 'reject']);
     Route::get('/thanh-vien/tin-nhan', [MemberChatController::class, 'index']);
     Route::post('/thanh-vien/tin-nhan/voi/{member}', [MemberChatController::class, 'open']);
     Route::get('/thanh-vien/tin-nhan/tep/{attachment}', [MemberChatController::class, 'download']);
@@ -61,6 +65,10 @@ Route::middleware('auth.member')->group(function () {
     Route::get('/thanh-vien/tin-nhan/{conversation}', [MemberChatController::class, 'show']);
     Route::post('/thanh-vien/tin-nhan/{conversation}/da-doc', [MemberChatController::class, 'markRead']);
     Route::post('/thanh-vien/tin-nhan/{conversation}', [MemberChatController::class, 'store']);
+    Route::post('/thanh-vien/an-le', [MemberCaseArticleController::class, 'store']);
+    Route::put('/thanh-vien/an-le/{caseArticle}', [MemberCaseArticleController::class, 'update']);
+    Route::patch('/thanh-vien/an-le/{caseArticle}', [MemberCaseArticleController::class, 'update']);
+    Route::delete('/thanh-vien/an-le/{caseArticle}', [MemberCaseArticleController::class, 'destroy']);
     Route::get('/thanh-vien/vu-viec', [MemberCaseController::class, 'index']);
     Route::post('/thanh-vien/vu-viec', [MemberCaseController::class, 'store']);
     Route::get('/thanh-vien/vu-viec/{conversation}', [MemberCaseController::class, 'show']);
@@ -94,12 +102,6 @@ Route::prefix('admin')->group(function () {
         Route::patch('/tin-tuc/{newsArticle}', [NewsArticleController::class, 'update']);
         Route::delete('/tin-tuc/{newsArticle}', [NewsArticleController::class, 'destroy']);
 
-        Route::get('/an-le', [CaseArticleController::class, 'index']);
-        Route::post('/an-le', [CaseArticleController::class, 'store']);
-        Route::put('/an-le/{caseArticle}', [CaseArticleController::class, 'update']);
-        Route::patch('/an-le/{caseArticle}', [CaseArticleController::class, 'update']);
-        Route::delete('/an-le/{caseArticle}', [CaseArticleController::class, 'destroy']);
-
         Route::get('/tuyen-dung', [RecruitmentPageController::class, 'show']);
         Route::put('/tuyen-dung', [RecruitmentPageController::class, 'update']);
         Route::patch('/tuyen-dung', [RecruitmentPageController::class, 'update']);
@@ -115,12 +117,6 @@ Route::prefix('admin')->group(function () {
         Route::put('/tuyen-dung/tin/{recruitmentPost}', [RecruitmentPostController::class, 'update']);
         Route::patch('/tuyen-dung/tin/{recruitmentPost}', [RecruitmentPostController::class, 'update']);
         Route::delete('/tuyen-dung/tin/{recruitmentPost}', [RecruitmentPostController::class, 'destroy']);
-
-        Route::get('/ho-so-ung-tuyen', [RecruitmentApplicationController::class, 'index']);
-        Route::get('/ho-so-ung-tuyen/{recruitmentApplication}/cv', [RecruitmentApplicationController::class, 'cv']);
-        Route::get('/ho-so-ung-tuyen/{recruitmentApplication}', [RecruitmentApplicationController::class, 'show']);
-        Route::patch('/ho-so-ung-tuyen/{recruitmentApplication}/status', [RecruitmentApplicationController::class, 'updateStatus']);
-        Route::delete('/ho-so-ung-tuyen/{recruitmentApplication}', [RecruitmentApplicationController::class, 'destroy']);
 
         Route::get('/thong-tin', [CompanySettingController::class, 'show']);
         Route::put('/thong-tin', [CompanySettingController::class, 'update']);

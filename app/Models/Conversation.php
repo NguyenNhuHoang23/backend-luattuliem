@@ -133,6 +133,21 @@ class Conversation extends Model
         $this->unsetRelation('members');
     }
 
+    /**
+     * @return \Illuminate\Support\Collection<int, self>
+     */
+    public static function listedFor(Member $actor, string $type)
+    {
+        return static::query()
+            ->where('type', $type)
+            ->whereHas('members', fn ($query) => $query->where('members.id', $actor->id))
+            ->with(['members', 'latestMessage'])
+            ->orderByDesc('updated_at')
+            ->get()
+            ->sortBy(fn (self $conversation) => $conversation->isUnreadFor($actor) ? 0 : 1)
+            ->values();
+    }
+
     public function isUnreadFor(Member $member): bool
     {
         $latest = $this->relationLoaded('latestMessage')

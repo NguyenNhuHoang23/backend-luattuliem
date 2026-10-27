@@ -29,8 +29,8 @@ class PublicCaseArticleTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.id', 'an-noi-bat')
-            ->assertJsonPath('data.1.id', 'an-thuong');
+            ->assertJsonPath('data.0.id', 'an-thuong')
+            ->assertJsonPath('data.1.id', 'an-noi-bat');
     }
 
     public function test_shows_case_article_detail(): void

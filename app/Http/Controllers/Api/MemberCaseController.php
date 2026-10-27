@@ -16,12 +16,7 @@ class MemberCaseController extends Controller
     {
         $actor = $this->actor($request);
 
-        $conversations = Conversation::query()
-            ->where('type', Conversation::TYPE_CASE)
-            ->whereHas('members', fn ($query) => $query->where('members.id', $actor->id))
-            ->with(['members', 'latestMessage'])
-            ->orderByDesc('updated_at')
-            ->get();
+        $conversations = Conversation::listedFor($actor, Conversation::TYPE_CASE);
 
         return ConversationResource::collection($conversations)
             ->additional(['success' => true])
