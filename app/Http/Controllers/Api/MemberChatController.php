@@ -118,6 +118,9 @@ class MemberChatController extends Controller
         if ($forbidden = $this->mustParticipate($conversation, $actor)) {
             return $forbidden;
         }
+        if ($blocked = $this->mustBeDirectorForIncome($conversation, $actor)) {
+            return $blocked;
+        }
 
         $uploads = $request->file('files', []);
         if ($uploads instanceof UploadedFile) {
@@ -196,6 +199,18 @@ class MemberChatController extends Controller
         return response()->json([
             'success' => false,
             'message' => 'Bạn không thuộc cuộc trao đổi này.',
+        ], 403);
+    }
+
+    private function mustBeDirectorForIncome(Conversation $conversation, Member $actor): ?JsonResponse
+    {
+        if (! $conversation->isIncome() || $actor->role === 'director') {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Thông báo lương chỉ do Giám đốc gửi. Thành viên không trả lời được.',
         ], 403);
     }
 }

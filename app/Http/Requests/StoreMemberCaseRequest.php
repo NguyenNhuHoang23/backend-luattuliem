@@ -28,6 +28,7 @@ class StoreMemberCaseRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:160'],
+            'description' => ['nullable', 'string', 'max:500'],
             'member_ids' => ['required', 'array', 'min:1'],
             'member_ids.*' => [
                 'integer',

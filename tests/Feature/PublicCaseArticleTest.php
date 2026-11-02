@@ -46,6 +46,18 @@ class PublicCaseArticleTest extends TestCase
                     'issuing_agency' => 'Quốc hội',
                 ],
             ],
+            'attributes' => [
+                'agency' => 'Hội đồng Thẩm phán Tòa án nhân dân tối cao',
+                'adoptionDate' => '06/04/2016',
+                'promulgationDoc' => 'Quyết định số 220/QĐ-CA ngày 06/4/2016',
+                'field' => 'Hôn nhân và gia đình; Đất đai',
+                'status' => 'Đang áp dụng',
+            ],
+            'details' => [
+                'decisionInfo' => 'Quyết định giám đốc thẩm số 208/2013/DS-GĐT.',
+                'approvalInfo' => 'Được Hội đồng Thẩm phán thông qua ngày 06/4/2016.',
+                'sourceDetail' => 'Vụ án ly hôn tại Hà Nội.',
+            ],
         ]);
 
         $this->getJson('/api/an-le/03-2016-al')
@@ -56,7 +68,10 @@ class PublicCaseArticleTest extends TestCase
             ->assertJsonPath('data.overview', 'Nội dung khái quát.')
             ->assertJsonPath('data.caseBody.0.heading', 'NỘI DUNG')
             ->assertJsonPath('data.relatedDocs.0.title', 'Luật Hôn nhân và gia đình năm 2014')
-            ->assertJsonPath('data.relatedDocs.0.issuingAgency', 'Quốc hội');
+            ->assertJsonPath('data.relatedDocs.0.issuingAgency', 'Quốc hội')
+            ->assertJsonPath('data.decisionInfo', 'Quyết định giám đốc thẩm số 208/2013/DS-GĐT.')
+            ->assertJsonPath('data.attributes.adoptionDate', '06/04/2016')
+            ->assertJsonPath('data.attributes.promulgationDoc', 'Quyết định số 220/QĐ-CA ngày 06/4/2016');
     }
 
     public function test_returns_not_found_for_missing_case(): void

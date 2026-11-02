@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Conversation;
 use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -105,11 +106,66 @@ class MemberTest extends TestCase
             'name' => 'Người khác',
             'username' => 'nguoikhac',
             'password' => 'Matkhau@1',
-            'role' => 'lawyer',
+            'role' => 'admin',
             'phone' => '0909 000 111',
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['role']);
+    }
+
+    public function test_creates_lawyer_support_and_legal_roles(): void
+    {
+        $this->postJson('/api/admin/thanh-vien', [
+            'name' => 'Luật sư A',
+            'username' => 'luatsua',
+            'password' => 'Matkhau@1',
+            'role' => 'lawyer',
+            'phone' => '091 234 56 01',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.role', 'lawyer')
+            ->assertJsonPath('data.group', 'lawyer');
+
+        $this->postJson('/api/admin/thanh-vien', [
+            'name' => 'CTV hỗ trợ',
+            'username' => 'ctvhotro',
+            'password' => 'Matkhau@1',
+            'role' => 'support',
+            'phone' => '098 765 43 01',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.role', 'support');
+
+        $this->postJson('/api/admin/thanh-vien', [
+            'name' => 'CTV pháp lý',
+            'username' => 'ctvphaply',
+            'password' => 'Matkhau@1',
+            'role' => 'legal',
+            'phone' => '097 111 22 03',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.role', 'legal');
+    }
+
+    public function test_staff_roles_cannot_use_director_endpoints(): void
+    {
+        $lawyer = $this->makeMember([
+            'username' => 'luatsu-quyen',
+            'role' => 'lawyer',
+            'email' => 'luatsu-quyen@luattuliem.vn',
+        ]);
+        $this->withToken($lawyer->createMemberToken());
+
+        $this->getJson('/api/thanh-vien/doi-ngu')
+            ->assertForbidden();
+        $this->postJson('/api/thanh-vien/vu-viec', [
+            'name' => 'Không được tạo',
+            'memberIds' => [$lawyer->id],
+        ])->assertForbidden();
+        $this->postJson('/api/thanh-vien/thu-nhap', [
+            'content' => 'Không được gửi',
+            'memberIds' => [$lawyer->id],
+        ])->assertForbidden();
     }
 
     public function test_updates_member_and_optional_password(): void
@@ -259,6 +315,41 @@ class MemberTest extends TestCase
             ->assertJsonPath('data.email', 'thutrang@luattuliem.vn')
             ->assertJsonPath('data.area', 'Hải Dương')
             ->assertJsonMissingPath('data.password');
+    }
+
+    public function test_team_member_includes_invited_cases(): void
+    {
+        $director = $this->makeMember([
+            'username' => 'giamdoc-vu',
+            'role' => 'director',
+        ]);
+        $invited = $this->makeMember([
+            'name' => 'Luật sư A',
+            'username' => 'luatsua-vu',
+            'email' => 'luatsua-vu@luattuliem.vn',
+        ]);
+        $outsider = $this->makeMember([
+            'name' => 'Luật sư B',
+            'username' => 'luatsub-vu',
+            'email' => 'luatsub-vu@luattuliem.vn',
+        ]);
+        Conversation::createCase($director, 'Vụ bà A', [$invited->id]);
+        Conversation::createCase($director, 'Vụ ông B', [$outsider->id]);
+
+        $this->withToken($director->createMemberToken());
+
+        $this->getJson('/api/thanh-vien/doi-ngu/'.$invited->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data.cases')
+            ->assertJsonPath('data.cases.0.name', 'Vụ bà A');
+
+        $listed = $this->getJson('/api/thanh-vien/doi-ngu')
+            ->assertOk()
+            ->json('data');
+        $invitedRow = collect($listed)->firstWhere('id', $invited->id);
+        $outsiderRow = collect($listed)->firstWhere('id', $outsider->id);
+        $this->assertSame(['Vụ bà A'], collect($invitedRow['cases'] ?? [])->pluck('name')->all());
+        $this->assertSame(['Vụ ông B'], collect($outsiderRow['cases'] ?? [])->pluck('name')->all());
     }
 
     public function test_ctv_cannot_list_team_members(): void

@@ -20,14 +20,18 @@ class ConversationResource extends JsonResource
             ? $this->latestMessage
             : $this->messages->last();
 
-        $isDirect = $this->type === Conversation::TYPE_DIRECT;
+        $isPeerThread = in_array($this->type, [
+            Conversation::TYPE_DIRECT,
+            Conversation::TYPE_INCOME,
+        ], true);
 
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
             'type' => $this->type,
             'name' => $this->name,
-            'peer' => $isDirect && $peer ? [
+            'description' => $this->description,
+            'peer' => $isPeerThread && $peer ? [
                 'id' => $peer->id,
                 'name' => $peer->name,
                 'username' => $peer->username,

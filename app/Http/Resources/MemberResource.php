@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Conversation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,6 +24,18 @@ class MemberResource extends JsonResource
             'area' => $this->area,
             'status' => $this->status,
             'joinDate' => $this->join_date,
+            'cases' => $this->when(
+                $this->relationLoaded('caseConversations'),
+                fn () => $this->caseConversations
+                    ->map(fn (Conversation $conversation) => [
+                        'id' => $conversation->uuid,
+                        'uuid' => $conversation->uuid,
+                        'name' => $conversation->name ?: 'Vụ việc',
+                        'description' => $conversation->description,
+                        'type' => 'cases',
+                    ])
+                    ->values(),
+            ),
         ];
     }
 }

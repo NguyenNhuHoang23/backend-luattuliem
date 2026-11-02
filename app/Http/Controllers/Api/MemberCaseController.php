@@ -34,6 +34,7 @@ class MemberCaseController extends Controller
             $actor,
             trim($request->validated('name')),
             $request->memberIds(),
+            $request->validated('description'),
         )->load(['members', 'latestMessage']);
         $conversation->loadRecentMessages();
         $conversation->markReadFor($actor);
@@ -81,8 +82,10 @@ class MemberCaseController extends Controller
             return $outside;
         }
 
+        $description = $request->validated('description');
         $conversation->fill([
             'name' => trim($request->validated('name')),
+            'description' => filled($description) ? trim($description) : null,
         ])->save();
         $conversation->syncCaseMembers($actor, $request->memberIds());
         $conversation->load(['members', 'latestMessage']);

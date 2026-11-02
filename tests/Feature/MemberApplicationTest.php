@@ -75,7 +75,7 @@ class MemberApplicationTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.status', 'approved')
             ->assertJsonPath('data.username', 'nguyenvanbinh')
-            ->assertJsonPath('member.role', 'ctv')
+            ->assertJsonPath('member.role', 'lawyer')
             ->assertJsonPath('member.status', 'active');
 
         $member = Member::query()->where('username', 'nguyenvanbinh')->first();

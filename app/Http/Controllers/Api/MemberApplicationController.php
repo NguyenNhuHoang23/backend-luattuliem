@@ -88,7 +88,7 @@ class MemberApplicationController extends Controller
                 'name' => $recruitmentApplication->full_name,
                 'username' => $data['username'],
                 'password' => $data['password'],
-                'role' => 'ctv',
+                'role' => Member::roleFromLabel($recruitmentApplication->role),
                 'phone' => $recruitmentApplication->phone,
                 'email' => $recruitmentApplication->email,
                 'area' => $data['area'] ?? $recruitmentApplication->area,

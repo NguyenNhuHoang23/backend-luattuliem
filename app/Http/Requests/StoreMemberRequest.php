@@ -37,6 +37,9 @@ class StoreMemberRequest extends FormRequest
         if (is_string($role)) {
             $merge['role'] = match (strtolower(trim($role))) {
                 'giam-doc', 'giamdoc', 'director' => 'director',
+                'lawyer', 'luat-su', 'luatsu', 'luat su' => 'lawyer',
+                'support', 'ctv-ho-tro', 'ho-tro', 'hotro' => 'support',
+                'legal', 'ctv-phap-ly', 'phap-ly', 'phaply' => 'legal',
                 'ctv', 'collaborator' => 'ctv',
                 default => strtolower(trim($role)),
             };
@@ -87,7 +90,7 @@ class StoreMemberRequest extends FormRequest
             'password.required' => 'Vui lòng nhập mật khẩu.',
             'password.min' => 'Mật khẩu tối thiểu 6 ký tự.',
             'role.required' => 'Vui lòng chọn vai trò.',
-            'role.in' => 'Vai trò phải là Giám đốc hoặc CTV.',
+            'role.in' => 'Vai trò phải là Giám đốc, Luật sư, CTV hỗ trợ, CTV pháp lý hoặc CTV.',
             'phone.required' => 'Vui lòng nhập số điện thoại.',
             'email.email' => 'Email không hợp lệ.',
         ];

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Throwable;
 
 class CaseArticle extends Model
 {
@@ -28,6 +30,7 @@ class CaseArticle extends Model
         'related_docs',
         'attributes',
         'modal',
+        'details',
     ];
 
     protected function casts(): array
@@ -42,6 +45,7 @@ class CaseArticle extends Model
             'related_docs' => 'array',
             'attributes' => 'array',
             'modal' => 'array',
+            'details' => 'array',
         ];
     }
 
@@ -95,6 +99,8 @@ class CaseArticle extends Model
         $field = $data['field'] ?? $existing?->field;
         $status = $data['status'] ?? $existing?->status ?? 'Đang áp dụng';
 
+        $existingAttributes = $existing?->attributes ?? [];
+
         $attributes = [
             'title' => $title,
             'case_number' => $caseNumber,
@@ -116,16 +122,23 @@ class CaseArticle extends Model
             'case_body' => $data['case_body'] ?? $existing?->case_body ?? [],
             'related_docs' => $data['related_docs'] ?? $existing?->related_docs ?? [],
             'attributes' => [
-                'agency' => $court,
+                'agency' => $existingAttributes['agency'] ?? $court,
                 'field' => $field,
                 'status' => $status,
+                'adoptionDate' => $data['adoption_date']
+                    ?? $existingAttributes['adoptionDate']
+                    ?? null,
+                'promulgationDoc' => $data['promulgation_doc']
+                    ?? $existingAttributes['promulgationDoc']
+                    ?? null,
             ],
-            'modal' => [
+            'modal' => $data['modal'] ?? $existing?->modal ?? [
                 'title' => $title,
                 'topic' => $tag,
                 'court' => $court,
                 'result' => $overview,
             ],
+            'details' => $data['details'] ?? $existing?->details,
         ];
 
         if (! $existing || filled($data['slug'] ?? null)) {
@@ -137,5 +150,81 @@ class CaseArticle extends Model
         }
 
         return $attributes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    public static function attributesFromImported(array $item): array
+    {
+        $meta = is_array($item['attributes'] ?? null) ? $item['attributes'] : [];
+
+        return [
+            'slug' => $item['id'] ?? static::uniqueSlug((string) ($item['caseNumber'] ?? $item['title'] ?? 'an-le')),
+            'title' => $item['title'],
+            'case_number' => $item['caseNumber'] ?? $item['case_number'] ?? '',
+            'code' => $item['code'] ?? $item['caseNumber'] ?? null,
+            'category' => $item['category'],
+            'tag' => $item['tag'] ?? null,
+            'description' => $item['description'],
+            'overview' => $item['overview'] ?? null,
+            'source_court' => $item['sourceCourt'] ?? $item['source_court'] ?? ($meta['agency'] ?? null),
+            'published_on' => static::parseImportedDate($item['updatedAt'] ?? $item['published_on'] ?? null),
+            'featured' => (bool) ($item['featured'] ?? false),
+            'publication_order' => (int) ($item['publicationOrder'] ?? $item['publication_order'] ?? static::nextOrder()),
+            'field' => $meta['field'] ?? $item['field'] ?? null,
+            'status' => $meta['status'] ?? $item['status'] ?? 'Đang áp dụng',
+            'keywords' => $item['keywords'] ?? [],
+            'legal_provisions' => $item['legalProvisions'] ?? $item['legal_provisions'] ?? [],
+            'case_body' => $item['caseBody'] ?? $item['case_body'] ?? [],
+            'related_docs' => collect($item['relatedDocs'] ?? $item['related_docs'] ?? [])
+                ->map(fn ($doc) => [
+                    'title' => $doc['title'] ?? '',
+                    'type' => $doc['type'] ?? '',
+                    'issuing_agency' => $doc['issuingAgency'] ?? $doc['issuing_agency'] ?? '',
+                ])
+                ->filter(fn ($doc) => $doc['title'] !== '')
+                ->values()
+                ->all(),
+            'attributes' => [
+                'agency' => $meta['agency'] ?? $item['sourceCourt'] ?? null,
+                'adoptionDate' => $meta['adoptionDate'] ?? $meta['adoption_date'] ?? null,
+                'promulgationDoc' => $meta['promulgationDoc'] ?? $meta['promulgation_doc'] ?? null,
+                'field' => $meta['field'] ?? null,
+                'status' => $meta['status'] ?? null,
+            ],
+            'modal' => $item['modal'] ?? null,
+            'details' => array_filter([
+                'decisionInfo' => $item['decisionInfo'] ?? $item['decision_info'] ?? null,
+                'approvalInfo' => $item['approvalInfo'] ?? $item['approval_info'] ?? null,
+                'sourceDetail' => $item['sourceDetail'] ?? $item['source_detail'] ?? null,
+                'image' => $item['image'] ?? null,
+                'imageCaption' => $item['imageCaption'] ?? $item['image_caption'] ?? null,
+                'pdfUrl' => $item['pdfUrl'] ?? $item['pdf_url'] ?? null,
+                'pdfTitle' => $item['pdfTitle'] ?? $item['pdf_title'] ?? null,
+                'source' => $item['source'] ?? null,
+            ]),
+        ];
+    }
+
+    private static function parseImportedDate(mixed $raw): ?string
+    {
+        if (! filled($raw)) {
+            return null;
+        }
+
+        $value = trim((string) $raw);
+        $formats = ['d-m-Y', 'd/m/Y', 'Y-m-d'];
+
+        foreach ($formats as $format) {
+            try {
+                return Carbon::createFromFormat($format, $value)->toDateString();
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        return null;
     }
 }

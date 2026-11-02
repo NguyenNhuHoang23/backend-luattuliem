@@ -17,12 +17,15 @@ class Conversation extends Model
 
     public const TYPE_CASE = 'case';
 
+    public const TYPE_INCOME = 'income';
+
     public bool $hasMoreMessages = false;
 
     protected $fillable = [
         'uuid',
         'type',
         'name',
+        'description',
         'direct_key',
     ];
 
@@ -68,7 +71,10 @@ class Conversation extends Model
     {
         $key = static::directKey((int) $first->id, (int) $second->id);
 
-        $conversation = static::query()->where('direct_key', $key)->first();
+        $conversation = static::query()
+            ->where('type', static::TYPE_DIRECT)
+            ->where('direct_key', $key)
+            ->first();
         if ($conversation) {
             return $conversation;
         }
@@ -82,14 +88,42 @@ class Conversation extends Model
         return $conversation->load('members');
     }
 
+    public static function incomeKey(int $directorId, int $memberId): string
+    {
+        return 'income:'.$directorId.':'.$memberId;
+    }
+
+    public static function findOrCreateIncome(Member $director, Member $member): self
+    {
+        $key = static::incomeKey((int) $director->id, (int) $member->id);
+
+        $conversation = static::query()
+            ->where('type', static::TYPE_INCOME)
+            ->where('direct_key', $key)
+            ->first();
+        if ($conversation) {
+            return $conversation;
+        }
+
+        $conversation = static::query()->create([
+            'type' => static::TYPE_INCOME,
+            'direct_key' => $key,
+            'name' => 'Thông báo lương',
+        ]);
+        $conversation->members()->attach([$director->id, $member->id]);
+
+        return $conversation->load('members');
+    }
+
     /**
      * @param  array<int, int|string>  $memberIds
      */
-    public static function createCase(Member $director, string $name, array $memberIds): self
+    public static function createCase(Member $director, string $name, array $memberIds, ?string $description = null): self
     {
         $conversation = static::query()->create([
             'type' => static::TYPE_CASE,
             'name' => $name,
+            'description' => filled($description) ? trim($description) : null,
         ]);
         $conversation->syncCaseMembers($director, $memberIds);
 
@@ -116,6 +150,11 @@ class Conversation extends Model
     public function isCase(): bool
     {
         return $this->type === static::TYPE_CASE;
+    }
+
+    public function isIncome(): bool
+    {
+        return $this->type === static::TYPE_INCOME;
     }
 
     public function peerFor(Member $member): ?Member

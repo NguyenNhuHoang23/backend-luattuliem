@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\CaseArticle;
 use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class MemberCaseArticleTest extends TestCase
@@ -135,6 +137,111 @@ class MemberCaseArticleTest extends TestCase
         $this->assertDatabaseHas('case_articles', [
             'slug' => 'an-le-dat-dai',
         ]);
+    }
+
+    public function test_director_attaches_and_serves_case_pdf(): void
+    {
+        Storage::fake('public');
+
+        $director = $this->makeMember([
+            'name' => 'Giám đốc',
+            'username' => 'giamdoc-pdf-anle',
+            'role' => 'director',
+        ]);
+        $this->withToken($director->createMemberToken());
+
+        $created = $this->post('/api/thanh-vien/an-le', [
+            'title' => 'Án lệ có PDF',
+            'caseNumber' => '11/2026/AL',
+            'category' => 'lao-dong',
+            'description' => 'Bài có file PDF đính kèm.',
+            'caseBody' => json_encode([
+                ['heading' => 'NỘI DUNG', 'content' => 'In **đậm** phần quan trọng.'],
+            ], JSON_UNESCAPED_UNICODE),
+            'pdf_title' => 'Toàn văn án lệ',
+            'pdf' => UploadedFile::fake()->create('toan-van.pdf', 80, 'application/pdf'),
+        ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pdfTitle', 'Toàn văn án lệ')
+            ->assertJsonPath('data.caseBody.0.content', 'In **đậm** phần quan trọng.');
+
+        $pdfUrl = (string) $created->json('data.pdfUrl');
+        $this->assertStringContainsString('/api/an-le-pdf/', $pdfUrl);
+
+        $filename = basename(parse_url($pdfUrl, PHP_URL_PATH) ?: '');
+        $this->get('/api/an-le-pdf/'.$filename)->assertOk();
+
+        $slug = $created->json('data.id');
+        $this->post('/api/thanh-vien/an-le/'.$slug, [
+            'title' => 'Án lệ có PDF',
+            'caseNumber' => '11/2026/AL',
+            'category' => 'lao-dong',
+            'description' => 'Bài có file PDF đính kèm.',
+            'remove_pdf' => '1',
+        ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.pdfUrl', null);
+
+        $this->get('/api/an-le-pdf/'.$filename)->assertNotFound();
+    }
+
+    public function test_director_attaches_and_serves_case_image(): void
+    {
+        Storage::fake('public');
+
+        $director = $this->makeMember([
+            'name' => 'Giám đốc',
+            'username' => 'giamdoc-anh-anle',
+            'role' => 'director',
+        ]);
+        $this->withToken($director->createMemberToken());
+
+        $created = $this->post('/api/thanh-vien/an-le', [
+            'title' => 'Án lệ có ảnh',
+            'caseNumber' => '12/2026/AL',
+            'category' => 'lao-dong',
+            'description' => 'Bài có ảnh minh họa.',
+            'image_caption' => 'Ảnh minh họa vụ việc',
+            'image' => $this->fakePng('minh-hoa.png'),
+        ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.imageCaption', 'Ảnh minh họa vụ việc');
+
+        $imageUrl = (string) $created->json('data.image');
+        $this->assertStringContainsString('/api/an-le-anh/', $imageUrl);
+
+        $filename = basename(parse_url($imageUrl, PHP_URL_PATH) ?: '');
+        $this->get('/api/an-le-anh/'.$filename)->assertOk();
+
+        $inserted = $this->post('/api/thanh-vien/an-le-anh', [
+            'image' => $this->fakePng('chen-noi-dung.png'),
+        ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('success', true);
+
+        $this->assertStringContainsString('/api/an-le-anh/', (string) $inserted->json('data.url'));
+
+        $slug = $created->json('data.id');
+        $this->post('/api/thanh-vien/an-le/'.$slug, [
+            'title' => 'Án lệ có ảnh',
+            'caseNumber' => '12/2026/AL',
+            'category' => 'lao-dong',
+            'description' => 'Bài có ảnh minh họa.',
+            'remove_image' => '1',
+        ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.image', null);
+
+        $this->get('/api/an-le-anh/'.$filename)->assertNotFound();
+    }
+
+    private function fakePng(string $name = 'minh-hoa.png'): UploadedFile
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+        return UploadedFile::fake()->createWithContent($name, $png);
     }
 
     /**

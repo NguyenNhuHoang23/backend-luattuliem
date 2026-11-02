@@ -12,10 +12,13 @@ use App\Http\Controllers\Api\MemberCaseArticleController;
 use App\Http\Controllers\Api\MemberCaseController;
 use App\Http\Controllers\Api\MemberChatController;
 use App\Http\Controllers\Api\MemberController;
+use App\Http\Controllers\Api\MemberIncomeController;
 use App\Http\Controllers\Api\MemberTeamController;
 use App\Http\Controllers\Api\NewsArticleController;
 use App\Http\Controllers\Api\NewsArticleImageController;
 use App\Http\Controllers\Api\PublicAboutArticleController;
+use App\Http\Controllers\Api\CaseArticleImageController;
+use App\Http\Controllers\Api\CaseArticlePdfController;
 use App\Http\Controllers\Api\PublicCaseArticleController;
 use App\Http\Controllers\Api\PublicCompanySettingController;
 use App\Http\Controllers\Api\PublicHomePageController;
@@ -66,6 +69,8 @@ Route::middleware('auth.member')->group(function () {
     Route::post('/thanh-vien/tin-nhan/{conversation}/da-doc', [MemberChatController::class, 'markRead']);
     Route::post('/thanh-vien/tin-nhan/{conversation}', [MemberChatController::class, 'store']);
     Route::post('/thanh-vien/an-le', [MemberCaseArticleController::class, 'store']);
+    Route::post('/thanh-vien/an-le-anh', [MemberCaseArticleController::class, 'storeImage']);
+    Route::post('/thanh-vien/an-le/{caseArticle}', [MemberCaseArticleController::class, 'update']);
     Route::put('/thanh-vien/an-le/{caseArticle}', [MemberCaseArticleController::class, 'update']);
     Route::patch('/thanh-vien/an-le/{caseArticle}', [MemberCaseArticleController::class, 'update']);
     Route::delete('/thanh-vien/an-le/{caseArticle}', [MemberCaseArticleController::class, 'destroy']);
@@ -74,8 +79,14 @@ Route::middleware('auth.member')->group(function () {
     Route::get('/thanh-vien/vu-viec/{conversation}', [MemberCaseController::class, 'show']);
     Route::put('/thanh-vien/vu-viec/{conversation}', [MemberCaseController::class, 'update']);
     Route::patch('/thanh-vien/vu-viec/{conversation}', [MemberCaseController::class, 'update']);
+    Route::get('/thanh-vien/thu-nhap', [MemberIncomeController::class, 'index']);
+    Route::post('/thanh-vien/thu-nhap', [MemberIncomeController::class, 'store']);
 });
 Route::get('/tin-tuc-anh/{filename}', [NewsArticleImageController::class, 'show'])
+    ->where('filename', '[A-Za-z0-9._-]+');
+Route::get('/an-le-pdf/{filename}', [CaseArticlePdfController::class, 'show'])
+    ->where('filename', '[A-Za-z0-9._-]+');
+Route::get('/an-le-anh/{filename}', [CaseArticleImageController::class, 'show'])
     ->where('filename', '[A-Za-z0-9._-]+');
 Route::get('/trang-chu-anh/{filename}', [HomePageImageController::class, 'show'])
     ->where('filename', '[A-Za-z0-9._-]+');

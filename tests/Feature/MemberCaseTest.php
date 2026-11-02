@@ -37,12 +37,14 @@ class MemberCaseTest extends TestCase
 
         $created = $this->postJson('/api/thanh-vien/vu-viec', [
             'name' => 'Hồ sơ tranh chấp đất',
+            'description' => 'Tranh chấp ranh giới thửa đất tại Bắc Ninh.',
             'memberIds' => [$ctv->id, $other->id],
         ])
             ->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.type', 'case')
-            ->assertJsonPath('data.name', 'Hồ sơ tranh chấp đất');
+            ->assertJsonPath('data.name', 'Hồ sơ tranh chấp đất')
+            ->assertJsonPath('data.description', 'Tranh chấp ranh giới thửa đất tại Bắc Ninh.');
 
         $uuid = $created->json('data.uuid');
         $this->assertNotEmpty($uuid);
@@ -99,10 +101,12 @@ class MemberCaseTest extends TestCase
         $this->withToken($director->createMemberToken());
         $this->patchJson('/api/thanh-vien/vu-viec/'.$conversation->uuid, [
             'name' => 'Vụ đã đổi tên',
+            'description' => 'Đã chuyển sang hợp đồng dịch vụ.',
             'memberIds' => [$keep->id, $added->id],
         ])
             ->assertOk()
-            ->assertJsonPath('data.name', 'Vụ đã đổi tên');
+            ->assertJsonPath('data.name', 'Vụ đã đổi tên')
+            ->assertJsonPath('data.description', 'Đã chuyển sang hợp đồng dịch vụ.');
 
         $memberIds = collect($this->getJson('/api/thanh-vien/vu-viec/'.$conversation->uuid)->json('data.members'))
             ->pluck('id')

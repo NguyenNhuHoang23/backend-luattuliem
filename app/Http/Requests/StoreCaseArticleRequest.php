@@ -28,6 +28,7 @@ class StoreCaseArticleRequest extends FormRequest
             'relatedDocs' => 'related_docs',
             'publicationOrder' => 'publication_order',
             'updatedAt' => 'updated_at_input',
+            'imageCaption' => 'image_caption',
         ];
 
         foreach ($aliases as $from => $to) {
@@ -36,8 +37,24 @@ class StoreCaseArticleRequest extends FormRequest
             }
         }
 
+        foreach (['keywords', 'legal_provisions', 'case_body', 'related_docs'] as $field) {
+            $value = $merge[$field] ?? $this->input($field);
+            $decoded = $this->decodeJsonIfNeeded($value);
+            if ($decoded !== $value) {
+                $merge[$field] = $decoded;
+            }
+        }
+
         if ($this->exists('featured')) {
             $merge['featured'] = $this->boolean('featured');
+        }
+
+        if ($this->exists('remove_pdf')) {
+            $merge['remove_pdf'] = $this->boolean('remove_pdf');
+        }
+
+        if ($this->exists('remove_image')) {
+            $merge['remove_image'] = $this->boolean('remove_image');
         }
 
         foreach (['keywords', 'legal_provisions'] as $field) {
@@ -103,6 +120,12 @@ class StoreCaseArticleRequest extends FormRequest
             'related_docs.*.title' => ['required', 'string', 'max:255'],
             'related_docs.*.type' => ['nullable', 'string', 'max:80'],
             'related_docs.*.issuing_agency' => ['nullable', 'string', 'max:255'],
+            'pdf' => ['nullable', 'file', 'mimes:pdf', 'max:20480'],
+            'pdf_title' => ['nullable', 'string', 'max:255'],
+            'remove_pdf' => ['sometimes', 'boolean'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:4096'],
+            'image_caption' => ['nullable', 'string', 'max:255'],
+            'remove_image' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -117,7 +140,28 @@ class StoreCaseArticleRequest extends FormRequest
             'category.required' => 'Vui lòng chọn nhóm án lệ.',
             'category.in' => 'Nhóm án lệ không hợp lệ.',
             'description.required' => 'Vui lòng nhập mô tả ngắn.',
+            'pdf.mimes' => 'File đính kèm phải là PDF.',
+            'pdf.max' => 'File PDF không được vượt quá 20MB.',
+            'image.image' => 'File minh họa phải là ảnh.',
+            'image.mimes' => 'Ảnh chỉ nhận jpg, png, webp hoặc gif.',
+            'image.max' => 'Ảnh không được vượt quá 4MB.',
         ];
+    }
+
+    private function decodeJsonIfNeeded(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '' || ! in_array($trimmed[0], ['[', '{'], true)) {
+            return $value;
+        }
+
+        $decoded = json_decode($trimmed, true);
+
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
     }
 
     /**

@@ -18,6 +18,7 @@ class MemberTeamController extends Controller
 
         $members = Member::query()
             ->where('role', '!=', 'director')
+            ->with(['caseConversations' => fn ($query) => $query->orderByDesc('conversations.updated_at')])
             ->orderBy('name')
             ->orderBy('id')
             ->get();
@@ -32,6 +33,10 @@ class MemberTeamController extends Controller
         if ($forbidden = $this->directorOrForbidden($request)) {
             return $forbidden;
         }
+
+        $member->load([
+            'caseConversations' => fn ($query) => $query->orderByDesc('conversations.updated_at'),
+        ]);
 
         return (new MemberResource($member))
             ->additional(['success' => true])
